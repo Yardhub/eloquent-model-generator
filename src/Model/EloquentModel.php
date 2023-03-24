@@ -35,22 +35,26 @@ class EloquentModel extends ClassModel
         $relationClass = EmgHelper::getClassNameByTableName($relation->getTableName());
         if ($relation instanceof HasOne) {
             $name = Str::singular(Str::camel($relation->getTableName()));
-            $docBlock = sprintf('@return \%s', EloquentHasOne::class);
+            $docBlock = sprintf('@return \%s<%s>', EloquentHasOne::class, $relationClass);
+            $returnType = sprintf('\%s', EloquentHasOne::class);
 
             $virtualPropertyType = $relationClass;
         } elseif ($relation instanceof HasMany) {
             $name = Str::plural(Str::camel($relation->getTableName()));
-            $docBlock = sprintf('@return \%s', EloquentHasMany::class);
+            $docBlock = sprintf('@return \%s<%s>', EloquentHasMany::class, $relationClass);
+            $returnType = sprintf('\%s', EloquentHasMany::class);
 
             $virtualPropertyType = sprintf('%s[]', $relationClass);
         } elseif ($relation instanceof BelongsTo) {
             $name = Str::singular(Str::camel($relation->getTableName()));
-            $docBlock = sprintf('@return \%s', EloquentBelongsTo::class);
+            $docBlock = sprintf('@return \%s<%s>', EloquentBelongsTo::class, $relationClass);
+            $returnType = sprintf('\%s', EloquentBelongsTo::class);
 
             $virtualPropertyType = $relationClass;
         } elseif ($relation instanceof BelongsToMany) {
             $name = Str::plural(Str::camel($relation->getTableName()));
-            $docBlock = sprintf('@return \%s', EloquentBelongsToMany::class);
+            $docBlock = sprintf('@return \%s<%s>', EloquentBelongsToMany::class, $relationClass);
+            $returnType = sprintf('\%s', EloquentBelongsToMany::class);
 
             $virtualPropertyType = sprintf('%s[]', $relationClass);
         } else {
@@ -60,6 +64,7 @@ class EloquentModel extends ClassModel
         $method = new MethodModel($name);
         $method->setBody($this->createRelationMethodBody($relation));
         $method->setDocBlock(new DocBlockModel($docBlock));
+        $method->setReturnType($returnType);
 
         $this->addMethod($method);
         $this->addProperty(new VirtualPropertyModel($name, $virtualPropertyType));
@@ -70,9 +75,9 @@ class EloquentModel extends ClassModel
         $reflectionObject = new \ReflectionObject($relation);
         $name = Str::camel($reflectionObject->getShortName());
 
-        $arguments = [
-            $this->getNamespace()->getNamespace() . '\\' . EmgHelper::getClassNameByTableName($relation->getTableName())
-        ];
+        $className = EmgHelper::getClassNameByTableName($relation->getTableName());
+
+        $arguments = [];
 
         if ($relation instanceof BelongsToMany) {
             $defaultJoinTableName = EmgHelper::getDefaultJoinTableName(
@@ -112,10 +117,10 @@ class EloquentModel extends ClassModel
             );
         }
 
-        return sprintf('return $this->%s(%s);', $name, $this->createRelationMethodArguments($arguments));
+        return sprintf('return $this->%s(%s);', $name, $this->createRelationMethodArguments($className, $arguments));
     }
 
-    protected function createRelationMethodArguments(array $array): string
+    protected function createRelationMethodArguments(string $className, array $array): string
     {
         $array = array_reverse($array);
         $milestone = false;
@@ -135,6 +140,8 @@ class EloquentModel extends ClassModel
             }
             $item = sprintf("'%s'", $item);
         }
+
+        array_push($array, sprintf("%s::class", $className));
 
         return implode(', ', array_reverse($array));
     }
