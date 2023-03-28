@@ -36,25 +36,21 @@ class EloquentModel extends ClassModel
         if ($relation instanceof HasOne) {
             $name = Str::singular(Str::camel($relation->getTableName()));
             $docBlock = sprintf('@return \%s<%s>', EloquentHasOne::class, $relationClass);
-            $returnType = sprintf('\%s', EloquentHasOne::class);
 
             $virtualPropertyType = $relationClass;
         } elseif ($relation instanceof HasMany) {
             $name = Str::plural(Str::camel($relation->getTableName()));
             $docBlock = sprintf('@return \%s<%s>', EloquentHasMany::class, $relationClass);
-            $returnType = sprintf('\%s', EloquentHasMany::class);
 
             $virtualPropertyType = sprintf('%s[]', $relationClass);
         } elseif ($relation instanceof BelongsTo) {
             $name = Str::singular(Str::camel($relation->getTableName()));
             $docBlock = sprintf('@return \%s<%s>', EloquentBelongsTo::class, $relationClass);
-            $returnType = sprintf('\%s', EloquentBelongsTo::class);
 
             $virtualPropertyType = $relationClass;
         } elseif ($relation instanceof BelongsToMany) {
             $name = Str::plural(Str::camel($relation->getTableName()));
             $docBlock = sprintf('@return \%s<%s>', EloquentBelongsToMany::class, $relationClass);
-            $returnType = sprintf('\%s', EloquentBelongsToMany::class);
 
             $virtualPropertyType = sprintf('%s[]', $relationClass);
         } else {
@@ -64,7 +60,6 @@ class EloquentModel extends ClassModel
         $method = new MethodModel($name);
         $method->setBody($this->createRelationMethodBody($relation));
         $method->setDocBlock(new DocBlockModel($docBlock));
-        $method->setReturnType($returnType);
 
         $this->addMethod($method);
         $this->addProperty(new VirtualPropertyModel($name, $virtualPropertyType));
